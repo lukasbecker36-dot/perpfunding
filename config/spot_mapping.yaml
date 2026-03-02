@@ -1,0 +1,50 @@
+# Maps symbol -> {chain_id, token_address} for Dexscreener spot price lookup.
+# Add more symbols here to extend coverage.
+
+BTC:
+  chain_id: "ethereum"
+  token_address: "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599"  # WBTC
+
+ETH:
+  chain_id: "ethereum"
+  token_address: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"  # WETH
+
+SOL:
+  chain_id: "solana"
+  token_address: "So11111111111111111111111111111111111111112"
+
+BNB:
+  chain_id: "bsc"
+  token_address: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"  # WBNB
+
+AVAX:
+  chain_id: "avalanche"
+  token_address: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7"  # WAVAX
+
+MATIC:
+  chain_id: "polygon"
+  token_address: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"  # WMATIC
+
+ARB:
+  chain_id: "arbitrum"
+  token_address: "0x912CE59144191C1204E64559FE8253a0e49E6548"
+
+OP:
+  chain_id: "optimism"
+  token_address: "0x4200000000000000000000000000000000000042"
+
+LINK:
+  chain_id: "ethereum"
+  token_address: "0x514910771AF9Ca656af840dff83E8264EcF986CA"
+
+DOGE:
+  chain_id: "bsc"
+  token_address: "0xbA2aE424d960c26247Dd6c32edC70B295c744C43"
+
+XRP:
+  chain_id: "bsc"
+  token_address: "0x1D2F0da169ceB9fC7B3144628dB156f3F6c60dBE"
+
+ADA:
+  chain_id: "bsc"
+  token_address: "0x3EE2200Efb3400fAbB9AacF31297cBdD1d435D47"

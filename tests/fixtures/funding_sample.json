@@ -1,0 +1,52 @@
+[
+  {
+    "exchange": "Hyperliquid",
+    "symbol": "BTC-PERP",
+    "fundingRate": 0.0001
+  },
+  {
+    "exchange": "HyperLiquid",
+    "symbol": "ETH-PERP",
+    "fundingRate": 0.00008
+  },
+  {
+    "exchange": "HL",
+    "symbol": "SOL-PERP",
+    "fundingRate": 0.00015
+  },
+  {
+    "exchange": "kucoin",
+    "symbol": "XBTUSDTM",
+    "fundingRate": 0.00012
+  },
+  {
+    "exchange": "KuCoin",
+    "symbol": "ETHUSDTM",
+    "fundingRate": 0.00009
+  },
+  {
+    "exchange": "aster",
+    "symbol": "BTCUSDT",
+    "fundingRate": 0.00011
+  },
+  {
+    "exchange": "aster.ag",
+    "symbol": "ETHUSDT",
+    "fundingRate": 0.00007
+  },
+  {
+    "exchange": "edgeX",
+    "symbol": "BTC-USDT",
+    "fundingRate": 0.00013
+  },
+  {
+    "exchange": "SomeOtherExchange",
+    "symbol": "BTC-USDT",
+    "fundingRate": 0.0005
+  },
+  {
+    "exchange": "Hyperliquid",
+    "symbol": "DOGE-PERP",
+    "fundingRate": -0.00002
+  }
+]
