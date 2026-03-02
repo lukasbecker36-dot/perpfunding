@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 
 import pandas as pd
 
@@ -106,16 +106,27 @@ def run(
         return {**cand, "perp_bid": bid, "perp_bid_sz": sz}
 
     enriched: list[dict] = []
-    with ThreadPoolExecutor(max_workers=10) as pool:
+    _ORDERBOOK_TIMEOUT = 20  # seconds — hard cap for the entire fetch phase
+    with ThreadPoolExecutor(max_workers=16) as pool:
         futures = {pool.submit(_fetch_bid, c): c for c in candidates}
-        for fut in as_completed(futures):
-            try:
-                enriched.append(fut.result())
-            except Exception as exc:
-                cand = futures[fut]
-                _log.warning("Bid fetch exception for %s/%s: %s", cand["exchange"], cand["symbol"], exc)
-                partial_failures.append(f"{cand['exchange']}/{cand['symbol']}: {exc}")
-                enriched.append({**cand, "perp_bid": None, "perp_bid_sz": None})
+        try:
+            for fut in as_completed(futures, timeout=_ORDERBOOK_TIMEOUT):
+                try:
+                    enriched.append(fut.result(timeout=2))
+                except Exception as exc:
+                    cand = futures[fut]
+                    _log.warning("Bid fetch exception for %s/%s: %s", cand["exchange"], cand["symbol"], exc)
+                    partial_failures.append(f"{cand['exchange']}/{cand['symbol']}: {exc}")
+                    enriched.append({**cand, "perp_bid": None, "perp_bid_sz": None})
+        except FuturesTimeout:
+            _log.warning("Orderbook fetch phase timed out after %ds", _ORDERBOOK_TIMEOUT)
+
+    # Any futures that never completed — treat as failures
+    for fut, cand in futures.items():
+        if not fut.done():
+            fut.cancel()
+            partial_failures.append(f"{cand['exchange']}/{cand['symbol']}: timed out")
+            enriched.append({**cand, "perp_bid": None, "perp_bid_sz": None})
 
     # ------------------------------------------------------------------ #
     # 4. Spot prices
