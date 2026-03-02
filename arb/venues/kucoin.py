@@ -59,6 +59,8 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
     # Primary: ticker endpoint
     try:
         resp = _http.get(_TICKER_URL, params={"symbol": kc_sym})
+        if resp.status_code in (400, 404):
+            return None, None  # symbol not listed on KuCoin futures
         resp.raise_for_status()
         data = resp.json().get("data") or {}
         bid_price = data.get("bestBidPrice")
@@ -73,6 +75,8 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
     # Fallback: level2 snapshot
     try:
         resp = _http.get(_DEPTH_URL, params={"symbol": kc_sym})
+        if resp.status_code in (400, 404):
+            return None, None
         resp.raise_for_status()
         data = resp.json().get("data") or {}
         bids = data.get("bids", [])
@@ -81,6 +85,6 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
             size_base = float(bids[0][1]) * multiplier
             return price, size_base
     except Exception as exc:
-        _log.warning("KuCoin depth fallback failed for %s: %s", kc_sym, exc)
+        _log.debug("KuCoin depth fallback failed for %s: %s", kc_sym, exc)
 
     return None, None

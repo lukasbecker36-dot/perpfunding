@@ -24,7 +24,7 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
         return None, None
 
     if "error" in data:
-        _log.warning("Hyperliquid error for %s: %s", symbol, data["error"])
+        _log.debug("Hyperliquid: symbol not found %s: %s", symbol, data["error"])
         return None, None
 
     try:

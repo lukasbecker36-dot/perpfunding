@@ -22,6 +22,8 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
     # Primary: bookTicker
     try:
         resp = _http.get(_BOOK_TICKER_URL, params={"symbol": sym})
+        if resp.status_code == 400:
+            return None, None  # symbol not listed on Aster
         resp.raise_for_status()
         data = resp.json()
         # Response may be a list or a single dict
@@ -34,15 +36,17 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
     except Exception as exc:
         _log.debug("Aster bookTicker failed for %s: %s", sym, exc)
 
-    # Fallback: depth endpoint
+    # Fallback: depth endpoint (only reached on 5xx / parse errors, not 400)
     try:
         resp = _http.get(_DEPTH_URL, params={"symbol": sym, "limit": 5})
+        if resp.status_code == 400:
+            return None, None
         resp.raise_for_status()
         data = resp.json()
         bids = data.get("bids", [])
         if bids:
             return float(bids[0][0]), float(bids[0][1])
     except Exception as exc:
-        _log.warning("Aster depth fallback failed for %s: %s", sym, exc)
+        _log.debug("Aster depth fallback failed for %s: %s", sym, exc)
 
     return None, None
