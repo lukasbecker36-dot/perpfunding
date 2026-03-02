@@ -4,38 +4,30 @@ from __future__ import annotations
 import logging
 
 from . import http as _http
-from .config import normalize_symbol, settings
+from .config import settings
 
 _log = logging.getLogger(__name__)
 
-# Canonical names for the 4 target exchanges
 _TARGET_EXCHANGES = {"hyperliquid", "kucoin", "aster", "edgex"}
-
-# Aliases the API might return
-_EXCHANGE_ALIASES: dict[str, str] = {
-    "hyperliquid": "hyperliquid",
-    "hyperliq": "hyperliquid",
-    "hl": "hyperliquid",
-    "kucoin": "kucoin",
-    "kucoin futures": "kucoin",
-    "aster": "aster",
-    "aster.ag": "aster",
-    "edgex": "edgex",
-    "edge x": "edgex",
-    "edgex exchange": "edgex",
-}
-
-
-def _normalize_exchange(raw: str) -> str | None:
-    """Map raw exchange name to canonical name, or None if not a target."""
-    return _EXCHANGE_ALIASES.get(raw.strip().lower())
 
 
 def fetch_funding() -> list[dict]:
     """Return a list of funding rate dicts from Loris Tools.
 
-    Each dict has keys: exchange, symbol, funding (float, per-period rate).
+    Each dict has keys: exchange (str), symbol (str), funding (float, in %).
     Returns [] on any HTTP error.
+
+    API response shape:
+        {
+          "funding_rates": {
+            "hyperliquid": {"BTC": 0.3, "ETH": 0.9, ...},
+            "kucoin":      {"BTC": -0.3, ...},
+            ...
+          },
+          ...
+        }
+    Symbols are already clean uppercase (no suffix).
+    Rates are in percentage units (0.3 = 0.3% per funding period).
     """
     try:
         resp = _http.get(settings.LORIS_URL)
@@ -45,34 +37,29 @@ def fetch_funding() -> list[dict]:
         _log.warning("Loris fetch failed: %s", exc)
         return []
 
-    # API may return a list or {data: [...]} envelope
-    if isinstance(data, dict):
-        data = data.get("data", [])
+    funding_rates = data.get("funding_rates", {})
+    if not isinstance(funding_rates, dict):
+        _log.warning("Unexpected Loris response shape: %s", type(funding_rates))
+        return []
 
     results: list[dict] = []
-    for item in data:
-        raw_exchange = item.get("exchange", "")
-        canonical = _normalize_exchange(raw_exchange)
-        if canonical is None:
+    for exchange, symbols in funding_rates.items():
+        if exchange.lower() not in _TARGET_EXCHANGES:
             continue
-
-        raw_symbol = item.get("symbol", "")
-        symbol = normalize_symbol(raw_symbol)
-        if not symbol:
+        if not isinstance(symbols, dict):
             continue
+        for symbol, rate in symbols.items():
+            try:
+                funding = float(rate)
+            except (TypeError, ValueError):
+                continue
+            results.append(
+                {
+                    "exchange": exchange.lower(),
+                    "symbol": symbol.upper(),
+                    "funding": funding,
+                }
+            )
 
-        try:
-            funding = float(item.get("fundingRate") or item.get("funding") or 0)
-        except (TypeError, ValueError):
-            continue
-
-        results.append(
-            {
-                "exchange": canonical,
-                "symbol": symbol,
-                "funding": funding,
-            }
-        )
-
-    _log.debug("Loris returned %d rows (filtered to targets)", len(results))
+    _log.debug("Loris returned %d rows for target exchanges", len(results))
     return results

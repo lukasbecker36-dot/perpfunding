@@ -128,7 +128,7 @@ def main() -> None:
         type=float,
         default=0.0,
         dest="min_funding",
-        help="Minimum 24h avg funding rate to include",
+        help="Minimum 24h avg funding rate %% to include (e.g. 0.05 = 0.05%%)",
     )
     run_parser.add_argument(
         "--notional",

@@ -26,12 +26,12 @@ with st.sidebar:
 
     top_n = st.slider("Top N opportunities", min_value=5, max_value=100, value=30, step=5)
     min_funding = st.number_input(
-        "Min funding avg (24h)",
+        "Min funding avg % (24h)",
         min_value=0.0,
-        max_value=0.01,
-        value=0.0001,
-        step=0.0001,
-        format="%.4f",
+        max_value=5.0,
+        value=0.0,
+        step=0.05,
+        format="%.2f",
     )
     notional_usdt = st.number_input(
         "Notional USDT (for edge estimate)",
