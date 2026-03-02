@@ -7,8 +7,8 @@ from .. import http as _http
 
 _log = logging.getLogger(__name__)
 
-_BOOK_TICKER_URL = "https://futures.aster.ag/fapi/v1/ticker/bookTicker"
-_DEPTH_URL = "https://futures.aster.ag/fapi/v1/depth"
+_BOOK_TICKER_URL = "https://fapi.asterdex.com/fapi/v1/ticker/bookTicker"
+_DEPTH_URL = "https://fapi.asterdex.com/fapi/v1/depth"
 
 
 def _aster_symbol(symbol: str) -> str:

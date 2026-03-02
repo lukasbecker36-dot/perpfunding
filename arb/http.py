@@ -15,7 +15,7 @@ HOST_CONCURRENCY: dict[str, int] = {
     "dexscreener": 2,
     "kucoin": 3,
     "hyperliquid": 3,
-    "aster": 3,
+    "asterdex": 3,
     "edgex": 2,
 }
 _DEFAULT_CONCURRENCY = 5
