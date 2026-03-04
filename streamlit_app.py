@@ -6,11 +6,15 @@ import logging
 import pandas as pd
 import streamlit as st
 
+from arb.collector import start as start_collector, is_running as collector_running
 from arb.config import settings
 from arb.timeutil import format_utc
 from arb.venues import ALL_VENUES
 
 logging.basicConfig(level=logging.WARNING)
+
+# Start background funding collector so 24h averages accumulate
+start_collector()
 
 st.set_page_config(
     page_title="Spot-Perp Arb Dashboard",

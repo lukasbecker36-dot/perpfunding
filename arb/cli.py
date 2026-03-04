@@ -76,6 +76,29 @@ def _build_table(df) -> Table:
     return table
 
 
+def _collect_command(args: argparse.Namespace) -> None:
+    """Run the funding-rate collector in the foreground (Ctrl+C to stop)."""
+    _setup_logging(settings.LOG_LEVEL)
+
+    from .collector import _collect_once, POLL_INTERVAL
+
+    venues = args.venues if args.venues else ALL_VENUES
+    interval = args.interval
+
+    console.print(f"[bold]Collecting funding snapshots every {interval}s for {venues}[/bold]")
+    console.print("[dim]Press Ctrl+C to stop.[/dim]")
+
+    import time as _time
+
+    try:
+        while True:
+            n = _collect_once(venues)
+            console.print(f"[green]Collected {n} snapshots[/green] at {format_utc(int(_time.time()))}")
+            _time.sleep(interval)
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Collector stopped.[/yellow]")
+
+
 def _run_command(args: argparse.Namespace) -> None:
     from . import core
 
@@ -145,10 +168,28 @@ def main() -> None:
         help=f"Venues to include. Choices: {ALL_VENUES}",
     )
 
+    collect_parser = sub.add_parser("collect", help="Run background funding-rate collector")
+    collect_parser.add_argument(
+        "--interval",
+        type=int,
+        default=300,
+        help="Polling interval in seconds (default: 300 = 5 min)",
+    )
+    collect_parser.add_argument(
+        "--venues",
+        nargs="+",
+        default=None,
+        choices=ALL_VENUES,
+        metavar="VENUE",
+        help=f"Venues to collect. Choices: {ALL_VENUES}",
+    )
+
     args = parser.parse_args()
 
     if args.command == "run":
         _run_command(args)
+    elif args.command == "collect":
+        _collect_command(args)
     else:
         parser.print_help()
         sys.exit(1)
