@@ -94,8 +94,19 @@ def run(
         )
 
     # ------------------------------------------------------------------ #
-    # 3. Parallel orderbook fetches
+    # 3. Pre-sort by funding and limit to top candidates for orderbook fetch
     # ------------------------------------------------------------------ #
+    candidates.sort(key=lambda c: c["funding_avg_24h"], reverse=True)
+    # Fetch orderbooks for 2x top_n (buffer for missing bids), capped at 200
+    fetch_limit = min(top_n * 2, max(len(candidates), 200))
+    fetch_candidates = candidates[:fetch_limit]
+
+    # Pre-fetch edgeX bids in a single WS batch (much faster than per-symbol)
+    edgex_symbols = [c["symbol"] for c in fetch_candidates if c["exchange"] == "edgex"]
+    if edgex_symbols:
+        from .venues.edgex import prefetch_bids
+        prefetch_bids(edgex_symbols)
+
     def _fetch_bid(cand: dict) -> dict:
         exchange = cand["exchange"]
         symbol = cand["symbol"]
@@ -108,7 +119,7 @@ def run(
     enriched: list[dict] = []
     _ORDERBOOK_TIMEOUT = 20  # seconds — hard cap for the entire fetch phase
     with ThreadPoolExecutor(max_workers=16) as pool:
-        futures = {pool.submit(_fetch_bid, c): c for c in candidates}
+        futures = {pool.submit(_fetch_bid, c): c for c in fetch_candidates}
         try:
             for fut in as_completed(futures, timeout=_ORDERBOOK_TIMEOUT):
                 try:
