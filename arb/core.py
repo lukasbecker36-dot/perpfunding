@@ -161,6 +161,15 @@ def run(
         if perp_bid is None:
             notes_parts.append("orderbook fetch failed")
 
+        # Sanity-check spot vs perp: if they diverge by >50%, the spot
+        # lookup likely matched a different token with the same ticker.
+        _MAX_DIVERGENCE = 0.30
+        if spot is not None and perp_bid is not None and spot > 0 and perp_bid > 0:
+            divergence = abs(perp_bid - spot) / spot
+            if divergence > _MAX_DIVERGENCE:
+                notes_parts.append(f"spot mismatch ({divergence:.0%} off)")
+                spot = None  # discard the bad spot price
+
         if spot is None:
             notes_parts.append("no spot price")
 
