@@ -6,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as
 
 import pandas as pd
 
-from . import loris, dexscreener
+from . import loris, spot as spot_mod
 from .config import settings
 from .storage import (
     init_db,
@@ -143,7 +143,7 @@ def run(
     # 4. Spot prices
     # ------------------------------------------------------------------ #
     unique_symbols = list({r["symbol"] for r in enriched})
-    spot_prices = dexscreener.fetch_spot_prices(unique_symbols, settings.spot_mapping)
+    spot_prices = spot_mod.fetch_spot_prices(unique_symbols)
 
     # ------------------------------------------------------------------ #
     # 5. Compute metrics
@@ -161,8 +161,8 @@ def run(
         if perp_bid is None:
             notes_parts.append("orderbook fetch failed")
 
-        if symbol not in settings.spot_mapping and spot is None:
-            notes_parts.append("spot mapping missing")
+        if spot is None:
+            notes_parts.append("no spot price")
 
         if r["funding_window_hours"] < 24 and not r["avg_was_none"]:
             h = round(r["funding_window_hours"], 1)
