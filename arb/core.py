@@ -161,7 +161,7 @@ def run(
         if perp_bid is None:
             notes_parts.append("orderbook fetch failed")
 
-        if symbol not in settings.spot_mapping:
+        if symbol not in settings.spot_mapping and spot is None:
             notes_parts.append("spot mapping missing")
 
         if r["funding_window_hours"] < 24 and not r["avg_was_none"]:
