@@ -73,7 +73,7 @@ def insert_funding_snapshot(
     funding: float,
 ) -> None:
     conn.execute(
-        "INSERT INTO funding_snapshots (ts, exchange, symbol, funding) VALUES (?, ?, ?, ?)",
+        "INSERT OR IGNORE INTO funding_snapshots (ts, exchange, symbol, funding) VALUES (?, ?, ?, ?)",
         (ts, exchange, symbol, funding),
     )
     conn.commit()
