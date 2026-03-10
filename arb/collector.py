@@ -10,6 +10,7 @@ import threading
 import time
 
 from . import loris
+from .backfill import backfill_if_needed
 from .config import settings
 from .storage import init_db, insert_funding_snapshot
 from .timeutil import now_utc_epoch
@@ -45,6 +46,12 @@ def _collect_once(venues: list[str] | None = None) -> int:
 def _loop(venues: list[str] | None, interval: int) -> None:
     global _running
     _log.info("Collector started (interval=%ds)", interval)
+    # Backfill historical data on startup before entering the poll loop
+    try:
+        backfill_if_needed(settings.DB_PATH)
+        _log.info("Backfill completed")
+    except Exception:
+        _log.warning("Backfill failed on startup", exc_info=True)
     while _running:
         try:
             n = _collect_once(venues)

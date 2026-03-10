@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from .. import http as _http
 
@@ -50,3 +51,48 @@ def get_best_bid(symbol: str) -> tuple[float, float] | tuple[None, None]:
         _log.debug("Aster depth fallback failed for %s: %s", sym, exc)
 
     return None, None
+
+
+_FUNDING_RATE_URL = "https://fapi.asterdex.com/fapi/v1/fundingRate"
+
+
+def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, str, float]]:
+    """Fetch historical funding rates from Aster.
+
+    Returns list of (ts_seconds, symbol, funding_rate_pct) tuples.
+    """
+    since_ms = since_ts * 1000
+    results: list[tuple[int, str, float]] = []
+
+    def _fetch_one(symbol: str) -> list[tuple[int, str, float]]:
+        sym = _aster_symbol(symbol)
+        try:
+            resp = _http.get(_FUNDING_RATE_URL, params={
+                "symbol": sym,
+                "startTime": since_ms,
+                "limit": 1000,
+            })
+            if resp.status_code == 400:
+                return []
+            resp.raise_for_status()
+            data = resp.json()
+            if not isinstance(data, list):
+                return []
+            rows = []
+            for rec in data:
+                ts = int(rec.get("fundingTime", 0)) // 1000
+                rate = float(rec.get("fundingRate", 0)) * 100  # decimal -> %
+                if ts > 0:
+                    rows.append((ts, symbol, rate))
+            return rows
+        except Exception as exc:
+            _log.debug("Aster funding history failed for %s: %s", symbol, exc)
+            return []
+
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        futs = {pool.submit(_fetch_one, s): s for s in symbols}
+        for fut in as_completed(futs):
+            results.extend(fut.result())
+
+    _log.info("Aster: fetched %d historical funding rows", len(results))
+    return results

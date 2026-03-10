@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS funding_snapshots (
     funding  REAL    NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_funding ON funding_snapshots (exchange, symbol, ts);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_funding ON funding_snapshots (ts, exchange, symbol);
 
 CREATE TABLE IF NOT EXISTS arb_snapshots (
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -125,6 +126,35 @@ def insert_arb_snapshot(
             ),
         )
     conn.commit()
+
+
+def get_latest_snapshot_ts(conn: sqlite3.Connection, exchange: str) -> int | None:
+    """Return the most recent timestamp for an exchange, or None."""
+    row = conn.execute(
+        "SELECT MAX(ts) FROM funding_snapshots WHERE exchange = ?",
+        (exchange,),
+    ).fetchone()
+    return row[0] if row and row[0] is not None else None
+
+
+def insert_funding_snapshots_bulk(
+    conn: sqlite3.Connection,
+    exchange: str,
+    rows: list[tuple[int, str, float]],
+) -> int:
+    """Bulk insert historical funding rows with dedup.
+
+    rows: list of (ts, symbol, funding) tuples.
+    Returns number of rows inserted.
+    """
+    if not rows:
+        return 0
+    conn.executemany(
+        "INSERT OR IGNORE INTO funding_snapshots (ts, exchange, symbol, funding) VALUES (?, ?, ?, ?)",
+        [(ts, exchange, symbol, funding) for ts, symbol, funding in rows],
+    )
+    conn.commit()
+    return len(rows)
 
 
 def prune_old_snapshots(conn: sqlite3.Connection, keep_days: int = 7) -> None:

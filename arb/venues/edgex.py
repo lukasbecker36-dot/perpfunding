@@ -304,3 +304,52 @@ def prefetch_bids(symbols: list[str]) -> None:
     Call this before individual get_best_bid() calls to populate the cache.
     """
     _refresh_batch_cache(symbols)
+
+
+_FUNDING_RATE_URL = "https://api.edgex.exchange/api/v1/public/funding/getFundingRatePage"
+
+
+def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, str, float]]:
+    """Fetch historical funding rates from edgeX REST API.
+
+    Returns list of (ts_seconds, symbol, funding_rate_pct) tuples.
+    Note: REST may be Cloudflare-blocked; fails gracefully.
+    """
+    from .. import http as _http
+
+    cmap = _ensure_contract_map()
+    if not cmap:
+        _log.warning("edgeX: no contract map, skipping funding history")
+        return []
+
+    since_ms = since_ts * 1000
+    results: list[tuple[int, str, float]] = []
+
+    for symbol in symbols:
+        contract_id = cmap.get(symbol)
+        if not contract_id:
+            continue
+        try:
+            resp = _http.get(_FUNDING_RATE_URL, params={
+                "contractId": contract_id,
+                "filterBeginTimeInclusive": str(since_ms),
+                "size": "100",
+            })
+            if resp.status_code in (400, 403, 404, 503):
+                _log.debug("edgeX funding history blocked/unavailable for %s: %s", symbol, resp.status_code)
+                continue
+            resp.raise_for_status()
+            data = resp.json()
+            items = data.get("data", {}).get("dataList", [])
+            if not isinstance(items, list):
+                continue
+            for rec in items:
+                ts = int(rec.get("fundingTime", rec.get("time", 0))) // 1000
+                rate = float(rec.get("fundingRate", 0)) * 100  # decimal -> %
+                if ts > 0:
+                    results.append((ts, symbol, rate))
+        except Exception as exc:
+            _log.debug("edgeX funding history failed for %s: %s", symbol, exc)
+
+    _log.info("edgeX: fetched %d historical funding rows", len(results))
+    return results
