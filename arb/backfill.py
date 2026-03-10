@@ -20,10 +20,10 @@ from .venues import HISTORY_MAP
 
 _log = logging.getLogger(__name__)
 
-_DEFAULT_LOOKBACK = 24 * 3600  # 24 hours in seconds
+_DEFAULT_LOOKBACK = 7 * 24 * 3600  # 7 days in seconds
 
 
-def backfill_if_needed(db_path: str | None = None, lookback_hours: int = 24) -> None:
+def backfill_if_needed(db_path: str | None = None, lookback_hours: int = 7 * 24) -> None:
     """Backfill historical funding for all exchanges that support it.
 
     For each exchange in HISTORY_MAP:
