@@ -102,10 +102,10 @@ if status:
 if df is not None and not df.empty:
     # Format funding columns as percentages for readability
     display_df = df.copy()
-    for col in ("funding_latest", "funding_avg_24h"):
+    for col in ("funding_latest", "funding_avg_24h", "funding_avg_3d", "funding_avg_7d"):
         if col in display_df.columns:
             display_df[col] = display_df[col].map(
-                lambda x: f"{x:.6f}" if x is not None else ""
+                lambda x: f"{x:.6f}" if pd.notna(x) and x is not None else ""
             )
 
     st.dataframe(
@@ -117,7 +117,9 @@ if df is not None and not df.empty:
             "exchange": st.column_config.TextColumn("Exchange"),
             "symbol": st.column_config.TextColumn("Symbol"),
             "funding_latest": st.column_config.TextColumn("Funding Latest"),
-            "funding_avg_24h": st.column_config.TextColumn("Funding Avg 24h"),
+            "funding_avg_24h": st.column_config.TextColumn("Funding Avg 1d"),
+            "funding_avg_3d": st.column_config.TextColumn("Funding Avg 3d"),
+            "funding_avg_7d": st.column_config.TextColumn("Funding Avg 7d"),
             "funding_window_hours": st.column_config.NumberColumn("Window (h)", format="%.1f"),
             "perp_bid": st.column_config.NumberColumn("Perp Bid", format="%.4f"),
             "perp_bid_size_usdt": st.column_config.NumberColumn("Bid Size USDT", format="%.2f"),

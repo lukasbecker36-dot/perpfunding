@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS arb_snapshots (
     symbol         TEXT,
     funding_latest REAL,
     funding_avg_24h REAL,
+    funding_avg_3d REAL,
+    funding_avg_7d REAL,
     funding_window_hours REAL,
     perp_bid       REAL,
     perp_bid_size_usdt REAL,
@@ -48,8 +50,19 @@ def init_db(db_path: str) -> sqlite3.Connection:
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.executescript(_DDL)
+    # Migrate existing arb_snapshots table if missing new columns
+    _migrate_arb_columns(conn)
     conn.commit()
     return conn
+
+
+def _migrate_arb_columns(conn: sqlite3.Connection) -> None:
+    """Add funding_avg_3d/7d columns if they don't exist (for existing DBs)."""
+    existing = {row[1] for row in conn.execute("PRAGMA table_info(arb_snapshots)").fetchall()}
+    for col in ("funding_avg_3d", "funding_avg_7d"):
+        if col not in existing:
+            conn.execute(f"ALTER TABLE arb_snapshots ADD COLUMN {col} REAL")
+            _log.info("Migrated arb_snapshots: added %s", col)
 
 
 def insert_funding_snapshot(
@@ -104,9 +117,10 @@ def insert_arb_snapshot(
             """
             INSERT INTO arb_snapshots
               (ts, rank, exchange, symbol, funding_latest, funding_avg_24h,
+               funding_avg_3d, funding_avg_7d,
                funding_window_hours, perp_bid, perp_bid_size_usdt, spot_price,
                basis_usd, basis_bps, est_gross_edge, notes)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             """,
             (
                 ts,
@@ -115,6 +129,8 @@ def insert_arb_snapshot(
                 r.get("symbol"),
                 r.get("funding_latest"),
                 r.get("funding_avg_24h"),
+                r.get("funding_avg_3d"),
+                r.get("funding_avg_7d"),
                 r.get("funding_window_hours"),
                 r.get("perp_bid"),
                 r.get("perp_bid_size_usdt"),

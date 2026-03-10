@@ -26,6 +26,8 @@ _COLUMNS = [
     "symbol",
     "funding_latest",
     "funding_avg_24h",
+    "funding_avg_3d",
+    "funding_avg_7d",
     "funding_window_hours",
     "perp_bid",
     "perp_bid_size_usdt",
@@ -76,9 +78,14 @@ def run(
     # ------------------------------------------------------------------ #
     # 2. Compute rolling averages + filter by min_funding
     # ------------------------------------------------------------------ #
+    ts_3d_ago = ts_now - 3 * 86_400
+    ts_7d_ago = ts_now - 7 * 86_400
+
     candidates: list[dict] = []
     for (exchange, symbol), funding_latest in latest.items():
         avg, window_hours = get_rolling_avg(conn, exchange, symbol, ts_24h_ago)
+        avg_3d, _ = get_rolling_avg(conn, exchange, symbol, ts_3d_ago)
+        avg_7d, _ = get_rolling_avg(conn, exchange, symbol, ts_7d_ago)
         effective_avg = avg if avg is not None else funding_latest
         if effective_avg < min_funding:
             continue
@@ -88,6 +95,8 @@ def run(
                 "symbol": symbol,
                 "funding_latest": funding_latest,
                 "funding_avg_24h": effective_avg,
+                "funding_avg_3d": avg_3d,
+                "funding_avg_7d": avg_7d,
                 "funding_window_hours": window_hours,
                 "avg_was_none": avg is None,
             }
@@ -198,6 +207,8 @@ def run(
                 "symbol": symbol,
                 "funding_latest": r["funding_latest"],
                 "funding_avg_24h": r["funding_avg_24h"],
+                "funding_avg_3d": r.get("funding_avg_3d"),
+                "funding_avg_7d": r.get("funding_avg_7d"),
                 "funding_window_hours": r["funding_window_hours"],
                 "perp_bid": perp_bid,
                 "perp_bid_size_usdt": perp_bid_size_usdt,
