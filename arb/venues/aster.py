@@ -89,7 +89,7 @@ def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, 
             _log.debug("Aster funding history failed for %s: %s", symbol, exc)
             return []
 
-    with ThreadPoolExecutor(max_workers=3) as pool:
+    with ThreadPoolExecutor(max_workers=20) as pool:
         futs = {pool.submit(_fetch_one, s): s for s in symbols}
         for fut in as_completed(futs):
             results.extend(fut.result())

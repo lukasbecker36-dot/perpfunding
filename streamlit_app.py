@@ -6,6 +6,7 @@ import logging
 import pandas as pd
 import streamlit as st
 
+from arb.backfill import backfill_if_needed
 from arb.collector import start as start_collector, is_running as collector_running
 from arb.config import settings
 from arb.timeutil import format_utc
@@ -13,7 +14,16 @@ from arb.venues import ALL_VENUES
 
 logging.basicConfig(level=logging.WARNING)
 
-# Start background funding collector so 24h averages accumulate
+# Backfill historical funding data on first load (before collector starts)
+if "backfill_done" not in st.session_state:
+    with st.spinner("Backfilling historical funding rates…"):
+        try:
+            backfill_if_needed(settings.DB_PATH)
+        except Exception as exc:
+            logging.warning("Backfill failed: %s", exc)
+    st.session_state["backfill_done"] = True
+
+# Start background funding collector so averages accumulate
 start_collector()
 
 st.set_page_config(
