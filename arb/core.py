@@ -84,11 +84,17 @@ def run(
     candidates: list[dict] = []
     for (exchange, symbol), funding_latest in latest.items():
         avg, window_hours = get_rolling_avg(conn, exchange, symbol, ts_24h_ago)
-        avg_3d, _ = get_rolling_avg(conn, exchange, symbol, ts_3d_ago)
-        avg_7d, _ = get_rolling_avg(conn, exchange, symbol, ts_7d_ago)
+        avg_3d, window_3d = get_rolling_avg(conn, exchange, symbol, ts_3d_ago)
+        avg_7d, window_7d = get_rolling_avg(conn, exchange, symbol, ts_7d_ago)
         effective_avg = avg if avg is not None else funding_latest
         if effective_avg < min_funding:
             continue
+        # Only show 3d/7d averages when we have data spanning beyond 1d/3d
+        # Otherwise the value would just duplicate the shorter window.
+        if avg_3d is not None and window_3d < 25:  # less than ~1 day
+            avg_3d = None
+        if avg_7d is not None and window_7d < 73:  # less than ~3 days
+            avg_7d = None
         candidates.append(
             {
                 "exchange": exchange,

@@ -14,14 +14,16 @@ from arb.venues import ALL_VENUES
 
 logging.basicConfig(level=logging.WARNING)
 
-# Backfill historical funding data on first load (before collector starts)
-if "backfill_done" not in st.session_state:
-    with st.spinner("Backfilling historical funding rates…"):
+# Backfill historical funding data (runs once per process, not per session).
+# Uses a module-level flag so it survives session_state resets from redeploys.
+import arb.backfill as _backfill_mod
+if not getattr(_backfill_mod, "_backfill_completed", False):
+    with st.spinner("Backfilling historical funding rates (up to ~60s on cold start)…"):
         try:
             backfill_if_needed(settings.DB_PATH)
         except Exception as exc:
             logging.warning("Backfill failed: %s", exc)
-    st.session_state["backfill_done"] = True
+    _backfill_mod._backfill_completed = True
 
 # Start background funding collector so averages accumulate
 start_collector()
