@@ -52,6 +52,8 @@ def init_db(db_path: str) -> sqlite3.Connection:
     conn.executescript(_DDL)
     # Migrate existing arb_snapshots table if missing new columns
     _migrate_arb_columns(conn)
+    # Purge old funding snapshots that used non-annualized rates
+    _migrate_flush_non_annualized(conn)
     conn.commit()
     return conn
 
@@ -63,6 +65,35 @@ def _migrate_arb_columns(conn: sqlite3.Connection) -> None:
         if col not in existing:
             conn.execute(f"ALTER TABLE arb_snapshots ADD COLUMN {col} REAL")
             _log.info("Migrated arb_snapshots: added %s", col)
+
+
+def _migrate_flush_non_annualized(conn: sqlite3.Connection) -> None:
+    """One-time flush of funding_snapshots that used non-annualized rates.
+
+    Before this migration, backfill wrote per-period % (~0.2) while Loris
+    writes annualized % (~235). Mixing them corrupts rolling averages.
+    We track the migration via a simple key-value table so it only runs once.
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS _migrations (
+            key TEXT PRIMARY KEY,
+            applied_at INTEGER NOT NULL
+        )
+    """)
+    row = conn.execute(
+        "SELECT 1 FROM _migrations WHERE key = 'flush_non_annualized_v1'"
+    ).fetchone()
+    if row:
+        return  # already applied
+    n = conn.execute("SELECT COUNT(*) FROM funding_snapshots").fetchone()[0]
+    if n > 0:
+        conn.execute("DELETE FROM funding_snapshots")
+        _log.warning("Migration flush_non_annualized_v1: purged %d rows with wrong units", n)
+    conn.execute(
+        "INSERT INTO _migrations (key, applied_at) VALUES (?, ?)",
+        ("flush_non_annualized_v1", int(__import__("time").time())),
+    )
+    conn.commit()
 
 
 def insert_funding_snapshot(
