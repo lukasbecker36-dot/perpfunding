@@ -27,7 +27,7 @@ def fetch_funding() -> list[dict]:
           ...
         }
     Symbols are already clean uppercase (no suffix).
-    Rates are in percentage units (0.3 = 0.3% per funding period).
+    Rates are annualized percentages (235.7 = 235.7% APR).
     """
     try:
         resp = _http.get(settings.LORIS_URL)

@@ -122,7 +122,7 @@ def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, 
             rows = []
             for rec in items:
                 ts = int(rec.get("timepoint", rec.get("timePoint", rec.get("fundingTime", 0)))) // 1000
-                rate = float(rec.get("fundingRate", 0)) * 100  # decimal -> %
+                rate = float(rec.get("fundingRate", 0)) * 100 * 3 * 365  # decimal -> annualized %
                 if ts > 0:
                     rows.append((ts, symbol, rate))
             return rows

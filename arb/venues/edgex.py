@@ -345,7 +345,7 @@ def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, 
                 continue
             for rec in items:
                 ts = int(rec.get("fundingTime", rec.get("time", 0))) // 1000
-                rate = float(rec.get("fundingRate", 0)) * 100  # decimal -> %
+                rate = float(rec.get("fundingRate", 0)) * 100 * 3 * 365  # decimal -> annualized %
                 if ts > 0:
                     results.append((ts, symbol, rate))
         except Exception as exc:
