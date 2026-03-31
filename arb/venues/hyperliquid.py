@@ -35,7 +35,7 @@ def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, 
                 rows.append((ts, symbol, rate))
             return rows
         except Exception as exc:
-            _log.debug("Hyperliquid funding history failed for %s: %s", symbol, exc)
+            _log.warning("Hyperliquid funding history failed for %s: %s", symbol, exc)
             return []
 
     with ThreadPoolExecutor(max_workers=20) as pool:

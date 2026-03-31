@@ -349,7 +349,7 @@ def fetch_funding_history(symbols: list[str], since_ts: int) -> list[tuple[int, 
                 if ts > 0:
                     results.append((ts, symbol, rate))
         except Exception as exc:
-            _log.debug("edgeX funding history failed for %s: %s", symbol, exc)
+            _log.warning("edgeX funding history failed for %s: %s", symbol, exc)
 
     _log.info("edgeX: fetched %d historical funding rows", len(results))
     return results

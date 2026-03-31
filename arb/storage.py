@@ -173,8 +173,12 @@ def insert_funding_snapshots_bulk(
     return len(rows)
 
 
-def prune_old_snapshots(conn: sqlite3.Connection, keep_days: int = 7) -> None:
-    """Delete funding snapshots older than keep_days to bound DB size."""
+def prune_old_snapshots(conn: sqlite3.Connection, keep_days: int = 8) -> None:
+    """Delete funding snapshots older than keep_days to bound DB size.
+
+    Default is 8 days (not 7) so that 7-day rolling averages always have
+    a full window of data available.
+    """
     cutoff = int(__import__("time").time()) - keep_days * 86_400
     conn.execute("DELETE FROM funding_snapshots WHERE ts < ?", (cutoff,))
     conn.commit()

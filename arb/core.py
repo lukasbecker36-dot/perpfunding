@@ -89,11 +89,11 @@ def run(
         effective_avg = avg if avg is not None else funding_latest
         if effective_avg < min_funding:
             continue
-        # Only show 3d/7d averages when we have data spanning beyond 1d/3d
-        # Otherwise the value would just duplicate the shorter window.
-        if avg_3d is not None and window_3d < 25:  # less than ~1 day
+        # Only show 3d/7d averages when we have meaningful multi-point data.
+        # A window of 0 means a single snapshot (MAX==MIN), so suppress that.
+        if avg_3d is not None and window_3d < 1:
             avg_3d = None
-        if avg_7d is not None and window_7d < 73:  # less than ~3 days
+        if avg_7d is not None and window_7d < 1:
             avg_7d = None
         candidates.append(
             {
